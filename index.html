@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptCraft - Administrador de Prompts</title>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="brand-section">
+        <div class="logo-icon">P</div>
+        <div>
+          <h1>PromptCraft</h1>
+          <div class="subtitle">Herramienta de Administración de Prompts</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-config" class="btn btn-icon" title="Configurar API de Google Sheets">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <button id="theme-toggle" class="btn btn-icon" title="Alternar Modo Oscuro/Claro">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="btn-open-create" class="btn btn-primary">
+          <i class="fa-solid fa-plus"></i>
+          <span>Nuevo Prompt</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ESTADÍSTICAS RÁPIDAS -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fa-solid fa-terminal"></i>
+        </div>
+        <div class="stat-info">
+          <span id="stat-total" class="stat-value">0</span>
+          <span class="stat-label">Prompts Guardados</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon categories">
+          <i class="fa-solid fa-tags"></i>
+        </div>
+        <div class="stat-info">
+          <span id="stat-categories" class="stat-value">0</span>
+          <span class="stat-label">Categorías Únicas</span>
+        </div>
+      </div>
+      <div class="stat-card" style="cursor: pointer;" id="btn-open-config-db">
+        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <div class="stat-info">
+          <span id="stat-api-status" class="stat-value" style="font-size: 0.95rem; font-weight: 600;">Desconectado</span>
+          <span class="stat-label">Base de Datos</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE CONTROLES: BUSQUEDA Y FILTRADO -->
+    <div class="controls-section">
+      <div class="search-filter-row">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" placeholder="Buscar por nombre, categoría o contenido...">
+        </div>
+      </div>
+      <!-- Categorías (Filtros chips) -->
+      <div class="category-filters" id="category-filters-container">
+        <button class="category-chip active" data-category="all">Todos</button>
+      </div>
+    </div>
+
+    <!-- GRID DE PROMPTS -->
+    <main class="prompts-grid" id="prompts-grid-container">
+      
+      <!-- Carga inicial -->
+      <div class="loading-container" id="loading-view">
+        <div class="spinner"></div>
+        <p>Cargando biblioteca de prompts...</p>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;" id="loading-subtext">Por favor, espera o abre la configuración para sincronizar tu base de datos.</p>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-container" id="empty-view" style="display: none;">
+        <i class="fa-regular fa-folder-open empty-icon"></i>
+        <h3>No se encontraron prompts</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">Comienza agregando tu primer prompt o modifica los criterios de búsqueda/filtrado.</p>
+        <button id="btn-empty-create" class="btn btn-primary">
+          <i class="fa-solid fa-plus"></i> Crear Nuevo Prompt
+        </button>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- 1. MODAL: FORMULARIO (CREAR / EDITAR) -->
+  <div class="modal-overlay" id="modal-form-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="form-modal-title">Agregar Nuevo Prompt</h3>
+        <button class="modal-close" id="btn-close-form-modal">&times;</button>
+      </div>
+      <form id="prompt-form">
+        <input type="hidden" id="form-prompt-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-categoria">Categoría</label>
+            <input type="text" id="form-categoria" class="form-control" placeholder="Ej. Marketing, Programación, Escritura, Redacción" required list="categories-datalist">
+            <datalist id="categories-datalist">
+              <!-- Autocompletado -->
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label for="form-nombre">Nombre del Prompt</label>
+            <input type="text" id="form-nombre" class="form-control" placeholder="Ej. Redactor de Artículos SEO, Generador de Código Python" required>
+          </div>
+          <div class="form-group">
+            <label for="form-prompt">Cuerpo del Prompt</label>
+            <textarea id="form-prompt" class="form-control" placeholder="Escribe el prompt principal aquí... Puedes usar variables como [tema] o [tono]" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="form-ejemplos">Ejemplos / Parámetros de Entrada (Opcional)</label>
+            <textarea id="form-ejemplos" class="form-control" placeholder="Escribe ejemplos de uso, outputs esperados o explicaciones de variables..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-form">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-form">Guardar Prompt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. MODAL: DETALLES DEL PROMPT -->
+  <div class="modal-overlay" id="modal-detail-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <span class="detail-category" id="detail-categoria">CATEGORÍA</span>
+          <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.75rem;" id="detail-fecha"></span>
+          <h3 class="modal-title" id="detail-nombre">Nombre del Prompt</h3>
+        </div>
+        <button class="modal-close" id="btn-close-detail-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <div class="detail-section-title">Cuerpo del Prompt</div>
+          <div class="detail-box code-style" id="detail-prompt">Contenido del prompt...</div>
+        </div>
+        <div class="detail-section" id="detail-ejemplos-section">
+          <div class="detail-section-title">Ejemplos / Instrucciones de uso</div>
+          <div class="detail-box" id="detail-ejemplos">Ejemplos...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-close-detail">Cerrar</button>
+        <button class="btn btn-primary" id="btn-copy-prompt">
+          <i class="fa-regular fa-copy"></i> Copiar Prompt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MODAL: ELIMINAR CONFIRMACIÓN -->
+  <div class="modal-overlay" id="modal-delete-overlay">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">¿Eliminar Prompt?</h3>
+        <button class="modal-close" id="btn-close-delete-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar permanentemente el prompt <strong id="delete-prompt-name"></strong>?</p>
+        <p style="color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Esta acción no se puede deshacer en Google Sheets o Local Storage.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-delete">Cancelar</button>
+        <button class="btn btn-danger" id="btn-confirm-delete">Sí, Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MODAL: CONFIGURACIÓN DE API (LOCAL ONLY) -->
+  <div class="modal-overlay" id="modal-config-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-gear"></i> Configuración de Conexión</h3>
+        <button class="modal-close" id="btn-close-config-modal">&times;</button>
+      </div>
+      <form id="config-form">
+        <div class="modal-body">
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Puedes usar la aplicación guardando tus datos localmente en el navegador, o conectar un Google Sheets ingresando la URL de tu aplicación web de Google Apps Script.
+          </p>
+          <div class="form-group">
+            <label for="config-api-url">URL de Google Apps Script Web App (Opcional)</label>
+            <input type="url" id="config-api-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" id="btn-use-local-db" style="background: var(--warning-bg); color: var(--warning); border-color: rgba(245, 158, 11, 0.2);">
+            <i class="fa-solid fa-hard-drive"></i> Usar Almacenamiento Local
+          </button>
+          <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-config">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-config">Sincronizar Sheets</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOASTS DE NOTIFICACIÓN -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Script local -->
+  <script src="app.js" defer></script>
+</body>
+</html>
