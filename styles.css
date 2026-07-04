@@ -121,18 +121,13 @@ header {
 }
 
 .logo-icon {
-  width: 42px;
-  height: 42px;
+  width: 60px;
+  height: 60px;
   background: var(--primary-gradient);
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 800;
-  font-size: 1.3rem;
   box-shadow: 0 8px 20px -6px rgba(var(--primary-rgb), 0.5);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 0px;
+  object-fit: contain;
 }
 
 h1 {
